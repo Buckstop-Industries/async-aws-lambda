@@ -57,7 +57,7 @@ Repository = "https://github.com/bucktop-industries/async-aws-lambda"
 Issues = "https://github.com/bucktop-industries/async-aws-lambda/issues"
 
 [tool.setuptools]
-packages = ["async_aws_lambda"]
+packages = {find = {}}
 
 [tool.setuptools.package-data]
 async_aws_lambda = ["py.typed"]

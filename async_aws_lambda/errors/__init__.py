@@ -1,8 +1,8 @@
 """
 Error handling framework for Lambda functions.
 
-This module provides comprehensive error handling, retry logic, and recovery
-mechanisms for Lambda functions.
+This module provides comprehensive error handling and retry logic
+for Lambda functions.
 """
 
 from .models import (
@@ -12,10 +12,6 @@ from .models import (
     ProcessingResult,
 )
 from .handlers import ErrorHandler
-from .recovery import (
-    ErrorRecoveryStrategies,
-    PartialProcessingRecovery,
-)
 
 __all__ = [
     "ErrorCategory",
@@ -23,8 +19,6 @@ __all__ = [
     "ProcessingError",
     "ProcessingResult",
     "ErrorHandler",
-    "ErrorRecoveryStrategies",
-    "PartialProcessingRecovery",
 ]
 
 # Global error handler instance (optional, for convenience)

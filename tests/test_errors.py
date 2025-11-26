@@ -3,7 +3,7 @@ Tests for error handling module.
 """
 
 import datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -13,10 +13,6 @@ from async_aws_lambda.errors.models import (
     ErrorSeverity,
     ProcessingError,
     ProcessingResult,
-)
-from async_aws_lambda.errors.recovery import (
-    ErrorRecoveryStrategies,
-    PartialProcessingRecovery,
 )
 
 
@@ -292,163 +288,3 @@ class TestErrorHandler:
         assert summary["error_counts_by_category"]["validation"] == 5
         assert summary["error_counts_by_category"]["network"] == 2
         assert summary["critical_errors"] == 1
-
-
-class TestErrorRecovery:
-    """Tests for error recovery strategies."""
-
-    @pytest.mark.unit
-    @pytest.mark.asyncio
-    async def test_skip_row_recovery(self):
-        """Test skip_row_recovery strategy."""
-        error = ProcessingError(
-            error_id="ERR_123",
-            category=ErrorCategory.VALIDATION,
-            severity=ErrorSeverity.MEDIUM,
-            message="Test error",
-        )
-
-        result = await ErrorRecoveryStrategies.skip_row_recovery(
-            error, {"id": 1}, row_number=10
-        )
-
-        assert result.success is True
-        assert result.skipped_count == 1
-        assert len(result.errors) == 1
-        assert len(result.warnings) == 1
-
-    @pytest.mark.unit
-    @pytest.mark.asyncio
-    async def test_partial_data_recovery(self):
-        """Test partial_data_recovery strategy."""
-        error = ProcessingError(
-            error_id="ERR_123",
-            category=ErrorCategory.VALIDATION,
-            severity=ErrorSeverity.MEDIUM,
-            message="Test error",
-        )
-
-        result = await ErrorRecoveryStrategies.partial_data_recovery(
-            error, {"id": 1}, row_number=10
-        )
-
-        assert result.success is True
-        assert result.processed_count == 1
-        assert len(result.errors) == 1
-        assert len(result.warnings) == 1
-
-    @pytest.mark.unit
-    @pytest.mark.asyncio
-    async def test_fallback_processing_recovery_success(self):
-        """Test fallback_processing_recovery with successful fallback."""
-        error = ProcessingError(
-            error_id="ERR_123",
-            category=ErrorCategory.VALIDATION,
-            severity=ErrorSeverity.MEDIUM,
-            message="Test error",
-        )
-
-        async def fallback_func(row_data, row_number):
-            return "success"
-
-        result = await ErrorRecoveryStrategies.fallback_processing_recovery(
-            error, {"id": 1}, row_number=10, fallback_func=fallback_func
-        )
-
-        assert result.success is True
-        assert result.processed_count == 1
-        assert len(result.warnings) == 1
-
-    @pytest.mark.unit
-    @pytest.mark.asyncio
-    async def test_fallback_processing_recovery_failure(self):
-        """Test fallback_processing_recovery with failed fallback."""
-        error = ProcessingError(
-            error_id="ERR_123",
-            category=ErrorCategory.VALIDATION,
-            severity=ErrorSeverity.MEDIUM,
-            message="Test error",
-        )
-
-        async def fallback_func(row_data, row_number):
-            raise ValueError("Fallback failed")
-
-        result = await ErrorRecoveryStrategies.fallback_processing_recovery(
-            error, {"id": 1}, row_number=10, fallback_func=fallback_func
-        )
-
-        assert result.success is False
-        assert result.failed_count == 1
-        assert len(result.errors) == 2  # Original + fallback error
-
-
-class TestPartialProcessingRecovery:
-    """Tests for PartialProcessingRecovery class."""
-
-    @pytest.mark.unit
-    def test_partial_processing_recovery_initialization(self):
-        """Test PartialProcessingRecovery initialization."""
-        recovery = PartialProcessingRecovery(checkpoint_interval=50)
-
-        assert recovery.checkpoint_interval == 50
-        assert recovery.last_checkpoint is None
-
-    @pytest.mark.unit
-    def test_create_checkpoint(self):
-        """Test create_checkpoint."""
-        recovery = PartialProcessingRecovery()
-        checkpoint = recovery.create_checkpoint(
-            row_number=100, processed_count=95, failed_count=5
-        )
-
-        assert checkpoint["row_number"] == 100
-        assert checkpoint["processed_count"] == 95
-        assert checkpoint["failed_count"] == 5
-        assert "timestamp" in checkpoint
-        assert "checkpoint_id" in checkpoint
-        assert recovery.last_checkpoint == checkpoint
-
-    @pytest.mark.unit
-    def test_should_create_checkpoint(self):
-        """Test should_create_checkpoint."""
-        recovery = PartialProcessingRecovery(checkpoint_interval=100)
-
-        assert recovery.should_create_checkpoint(100) is True
-        assert recovery.should_create_checkpoint(200) is True
-        assert recovery.should_create_checkpoint(50) is False
-        assert recovery.should_create_checkpoint(99) is False
-
-    @pytest.mark.unit
-    def test_get_recovery_point_from_checkpoint(self):
-        """Test get_recovery_point from checkpoint."""
-        recovery = PartialProcessingRecovery()
-        processing_state = {
-            "last_checkpoint": {
-                "row_number": 500,
-                "processed_count": 450,
-                "failed_count": 50,
-            }
-        }
-
-        recovery_point = recovery.get_recovery_point(processing_state)
-
-        assert recovery_point == 500
-
-    @pytest.mark.unit
-    def test_get_recovery_point_from_last_parsed_row(self):
-        """Test get_recovery_point from last_parsed_row."""
-        recovery = PartialProcessingRecovery()
-        processing_state = {"last_parsed_row": 300}
-
-        recovery_point = recovery.get_recovery_point(processing_state)
-
-        assert recovery_point == 300
-
-    @pytest.mark.unit
-    def test_get_recovery_point_no_state(self):
-        """Test get_recovery_point with no state."""
-        recovery = PartialProcessingRecovery()
-
-        recovery_point = recovery.get_recovery_point(None)
-
-        assert recovery_point == 0

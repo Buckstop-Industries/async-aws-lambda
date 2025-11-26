@@ -9,8 +9,7 @@ This directory contains comprehensive tests for the async-aws-lambda library.
 - `test_handlers_protocols.py` - Tests for protocol definitions (LambdaHandler, AsyncLambdaHandler, DatabaseFactory)
 - `test_database.py` - Tests for database session management and initialization
 - `test_config.py` - Tests for configuration management (Settings, AWS Secrets Manager)
-- `test_errors.py` - Tests for error handling, classification, and recovery strategies
-- `test_utils_router.py` - Tests for Lambda function router utility
+- `test_errors.py` - Tests for error handling and classification
 
 ## Running Tests
 

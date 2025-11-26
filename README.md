@@ -343,7 +343,7 @@ The library automatically manages Lambda lifecycle:
 
 - **Signal Handling**: SIGTERM and SIGINT are caught for graceful shutdown
 - **Resource Cleanup**: Database connections and other resources are cleaned up
-- **Error Recovery**: Errors during cleanup don't crash the handler
+- **Error Handling**: Errors during cleanup don't crash the handler
 
 ## Type Safety
 

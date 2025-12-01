@@ -204,7 +204,7 @@ class TestDatabaseSession:
                 mock_maker.return_value = mock_session
 
                 with pytest.raises(ValueError):
-                    async with get_db_session() as session:
+                    async with get_db_session():
                         raise ValueError("Test error")
 
                 mock_session.rollback.assert_called_once()
@@ -271,7 +271,6 @@ class TestDatabaseSession:
         from async_aws_lambda.database import check_db_health
 
         # Reset engine state
-        from async_aws_lambda.database.session import _engine
 
         with patch("async_aws_lambda.database.session._engine", None):
             health = await check_db_health()

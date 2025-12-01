@@ -41,7 +41,7 @@ class TestAsyncLambdaHandlerProtocol:
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_async_lambda_handler_protocol_implementation(self):
-        """Test that an async function implementing AsyncLambdaHandler protocol is recognized."""
+        """Test async function implementing AsyncLambdaHandler protocol."""
 
         async def handler(event, context):
             return {"statusCode": 200}

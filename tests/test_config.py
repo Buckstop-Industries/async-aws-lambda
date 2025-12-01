@@ -172,14 +172,22 @@ class TestSecrets:
     @pytest.mark.unit
     @patch("boto3.session.Session")
     def test_get_secret_from_aws_handles_client_error(self, mock_session_class):
-        """Test that get_secret_from_aws raises SecretNotFoundError on ResourceNotFound."""
+        """Test that get_secret_from_aws raises SecretNotFoundError."""
         from botocore.exceptions import ClientError
 
-        from async_aws_lambda.config.secrets import SecretNotFoundError, get_secret_from_aws
+        from async_aws_lambda.config.secrets import (
+            SecretNotFoundError,
+            get_secret_from_aws,
+        )
 
         mock_client = MagicMock()
         mock_client.get_secret_value.side_effect = ClientError(
-            {"Error": {"Code": "ResourceNotFoundException", "Message": "Secret not found"}},
+            {
+                "Error": {
+                    "Code": "ResourceNotFoundException",
+                    "Message": "Secret not found",
+                }
+            },
             "GetSecretValue",
         )
         mock_session = MagicMock()
@@ -187,14 +195,19 @@ class TestSecrets:
         mock_session_class.return_value = mock_session
 
         # Should raise SecretNotFoundError instead of returning empty string
-        with pytest.raises(SecretNotFoundError, match="Secret 'nonexistent-secret' not found"):
+        with pytest.raises(
+            SecretNotFoundError, match="Secret 'nonexistent-secret' not found"
+        ):
             get_secret_from_aws("nonexistent-secret")
 
     @pytest.mark.unit
     @patch("boto3.session.Session")
     def test_get_secret_from_aws_handles_json_decode_error(self, mock_session_class):
-        """Test that get_secret_from_aws raises SecretAccessError on JSON decode errors."""
-        from async_aws_lambda.config.secrets import SecretAccessError, get_secret_from_aws
+        """Test that get_secret_from_aws raises SecretAccessError on decode errors."""
+        from async_aws_lambda.config.secrets import (
+            SecretAccessError,
+            get_secret_from_aws,
+        )
 
         mock_client = MagicMock()
         mock_client.get_secret_value.return_value = {"SecretString": "not-json"}
@@ -209,10 +222,13 @@ class TestSecrets:
     @pytest.mark.unit
     @patch("boto3.session.Session")
     def test_get_secret_from_aws_missing_key_in_json(self, mock_session_class):
-        """Test that get_secret_from_aws raises SecretNotFoundError when key doesn't exist."""
+        """Test that get_secret_from_aws raises SecretNotFoundError when key missing."""
         import json
 
-        from async_aws_lambda.config.secrets import SecretNotFoundError, get_secret_from_aws
+        from async_aws_lambda.config.secrets import (
+            SecretNotFoundError,
+            get_secret_from_aws,
+        )
 
         secret_data = {"url": "postgresql://localhost/db"}
         mock_client = MagicMock()
@@ -230,8 +246,11 @@ class TestSecrets:
     @pytest.mark.unit
     @patch("boto3.session.Session")
     def test_get_secret_from_aws_empty_secret_string(self, mock_session_class):
-        """Test that get_secret_from_aws raises SecretNotFoundError for empty SecretString."""
-        from async_aws_lambda.config.secrets import SecretNotFoundError, get_secret_from_aws
+        """Test that get_secret_from_aws raises SecretNotFoundError for empty string."""
+        from async_aws_lambda.config.secrets import (
+            SecretNotFoundError,
+            get_secret_from_aws,
+        )
 
         mock_client = MagicMock()
         mock_client.get_secret_value.return_value = {"SecretString": ""}

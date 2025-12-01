@@ -2,8 +2,6 @@
 Tests for Lambda lifecycle management.
 """
 
-import asyncio
-import signal
 import sys
 from unittest.mock import MagicMock, patch
 
@@ -243,7 +241,7 @@ class TestSignalHandling:
 
         try:
             _register_lambda_cleanup()
-            # Should register signal handlers (but may be skipped if still detected as test)
+            # Should register signal handlers (may be skipped if detected as test)
             # The actual behavior depends on how pytest detection works
             # Just verify the function runs without error
             assert lifecycle_module._cleanup_registered is True

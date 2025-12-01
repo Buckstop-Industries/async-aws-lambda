@@ -9,14 +9,14 @@ This module provides optional configuration management with support for:
 
 # Try to import config functionality (requires pydantic)
 try:
-    from .settings import Settings, get_settings
     from .secrets import (
-        SecretsBackend,
+        SecretAccessError,
         SecretError,
         SecretNotFoundError,
-        SecretAccessError,
+        SecretsBackend,
         get_secret_from_aws,
     )
+    from .settings import Settings, get_settings
 
     HAS_CONFIG = True
     __all__ = [

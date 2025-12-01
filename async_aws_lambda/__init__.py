@@ -1,8 +1,10 @@
 """
-Async AWS Lambda - A lightweight, zero-dependency library for building async AWS Lambda functions.
+Async AWS Lambda - A lightweight, zero-dependency library for building async
+AWS Lambda functions.
 
-This library provides decorators, context managers, and utilities for building async AWS Lambda
-functions with optional database support, configuration management, lifecycle management, and error handling.
+This library provides decorators, context managers, and utilities for building
+async AWS Lambda functions with optional database support, configuration
+management, lifecycle management, and error handling.
 
 Core Features:
 - @lambda_handler decorator for async Lambda handlers (zero dependencies)
@@ -43,36 +45,40 @@ __all__ = [
 
 # Optional exports - decorators are always available (raise ImportError if deps missing)
 try:
-    from .handlers.decorators import with_database
+    from .handlers.decorators import with_database  # noqa: F401
+
     __all__.append("with_database")
 except ImportError:
     pass
 
 try:
-    from .handlers.decorators import with_config
+    from .handlers.decorators import with_config  # noqa: F401
+
     __all__.append("with_config")
 except ImportError:
     pass
 
 # Optional module exports
 try:
-    from .database import get_db_session, init_db, close_db, Base
+    from .database import Base, close_db, get_db_session, init_db  # noqa: F401
+
     __all__.extend(["get_db_session", "init_db", "close_db", "Base"])
     HAS_DATABASE = True
 except ImportError:
     HAS_DATABASE = False
 
 try:
-    from .config import get_settings, Settings
+    from .config import Settings, get_settings  # noqa: F401
+
     __all__.extend(["get_settings", "Settings"])
     HAS_CONFIG = True
 except ImportError:
     HAS_CONFIG = False
 
 try:
-    from .errors import ErrorHandler, ProcessingError, ProcessingResult
+    from .errors import ErrorHandler, ProcessingError, ProcessingResult  # noqa: F401
+
     __all__.extend(["ErrorHandler", "ProcessingError", "ProcessingResult"])
     HAS_ERRORS = True
 except ImportError:
     HAS_ERRORS = False
-

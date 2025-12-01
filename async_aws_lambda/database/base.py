@@ -5,7 +5,6 @@ This module provides a base class for SQLAlchemy models optimized for Lambda use
 Requires sqlalchemy to be installed.
 """
 
-from typing import Any
 
 try:
     from sqlalchemy import MetaData

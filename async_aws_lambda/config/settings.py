@@ -1,12 +1,12 @@
 """
 Settings management for Lambda functions using Pydantic.
 
-This module provides type-safe configuration management with environment variable support.
-Requires pydantic and pydantic-settings to be installed.
+This module provides type-safe configuration management with environment variable
+support. Requires pydantic and pydantic-settings to be installed.
 """
 
 from functools import lru_cache
-from typing import Any, TypeVar
+from typing import TypeVar
 
 try:
     from pydantic_settings import BaseSettings
@@ -87,7 +87,7 @@ class Settings(BaseSettings):
 
 
 @lru_cache
-def get_settings(settings_class: type[T] = Settings) -> T:
+def get_settings(settings_class: type[T] = Settings) -> T:  # noqa: UP047
     """
     Get cached settings instance.
 

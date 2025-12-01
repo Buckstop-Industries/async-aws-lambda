@@ -5,13 +5,13 @@ This module provides comprehensive error handling and retry logic
 for Lambda functions.
 """
 
+from .handlers import ErrorHandler
 from .models import (
     ErrorCategory,
     ErrorSeverity,
     ProcessingError,
     ProcessingResult,
 )
-from .handlers import ErrorHandler
 
 __all__ = [
     "ErrorCategory",

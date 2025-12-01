@@ -15,7 +15,7 @@ To test locally with SAM CLI:
 
 from typing import Any
 
-from sqlalchemy import select, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from async_aws_lambda import lambda_handler, with_database

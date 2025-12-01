@@ -2,8 +2,8 @@
 Error models and data classes for error handling.
 """
 
-from dataclasses import dataclass
 import datetime
+from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
 from typing import Any

@@ -8,7 +8,7 @@ Requires boto3 to be installed.
 import json
 import logging
 import os
-from typing import Any, Protocol
+from typing import Protocol
 
 logger = logging.getLogger(__name__)
 
@@ -219,7 +219,8 @@ def get_secret_from_aws(
             ) from e
         else:
             raise SecretAccessError(
-                f"Error accessing secret '{secret_name}': {error_code} - {error_message}"
+                f"Error accessing secret '{secret_name}': {error_code} - "
+                f"{error_message}"
             ) from e
     except (SecretNotFoundError, SecretAccessError):
         # Re-raise our custom exceptions

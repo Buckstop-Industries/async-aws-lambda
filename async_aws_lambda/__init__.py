@@ -30,7 +30,7 @@ Example:
         return {"statusCode": 200}
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 # Core exports - always available (zero dependencies)
 from .handlers.decorators import lambda_handler

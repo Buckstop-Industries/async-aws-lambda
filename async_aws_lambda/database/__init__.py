@@ -7,13 +7,14 @@ Requires sqlalchemy[asyncio] to be installed.
 
 # Try to import database functionality (requires sqlalchemy)
 try:
-    from .session import (
-        get_db_session,
-        init_db,
-        close_db,
-        check_db_health,
+    from .backends import (
+        DatabaseBackend,
+        PostgresBackend,
+        SQLiteBackend,
+        get_backend_for_url,
     )
     from .base import Base
+    from .session import check_db_health, close_db, get_db_session, init_db
 
     HAS_DATABASE = True
     __all__ = [
@@ -22,8 +23,11 @@ try:
         "close_db",
         "check_db_health",
         "Base",
+        "DatabaseBackend",
+        "PostgresBackend",
+        "SQLiteBackend",
+        "get_backend_for_url",
     ]
 except ImportError:
     HAS_DATABASE = False
     __all__ = []
-

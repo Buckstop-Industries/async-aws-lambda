@@ -14,15 +14,71 @@ logger = logging.getLogger(__name__)
 
 
 class ErrorHandler:
-    """Centralized error handling for Lambda functions."""
+    """
+    Centralized error handling for Lambda functions.
+
+    This class provides comprehensive error handling, classification, and retry
+    logic for Lambda functions. It automatically categorizes errors, determines
+    retry strategies, and tracks error statistics.
+
+    Features:
+        - Automatic error classification by type
+        - Configurable retry logic with exponential backoff
+        - Error tracking and statistics
+        - Critical error detection and tracking
+        - Support for custom retry functions
+
+    Attributes:
+        max_retries: Maximum number of retry attempts (default: 3)
+        retry_delay: Base delay between retries in seconds (default: 1.0)
+        error_counts: Dictionary tracking error counts by category
+        critical_errors: List of critical errors encountered
+
+    Example:
+        Basic usage::
+
+            error_handler = ErrorHandler(max_retries=3, retry_delay=1.0)
+
+            try:
+                # Your code here
+                result = await some_operation()
+            except Exception as e:
+                error = error_handler.classify_error(e, context={"key": "value"})
+                if error_handler.should_retry(error):
+                    # Retry logic
+                    await error_handler.handle_error(e, retry_func=some_operation)
+
+        With retry logic::
+
+            async def process_data():
+                # Operation that might fail
+                return await api_call()
+
+            error_handler = ErrorHandler(max_retries=5, retry_delay=2.0)
+
+            try:
+                result = await process_data()
+            except Exception as e:
+                error = await error_handler.handle_error(
+                    e,
+                    context={"operation": "process_data"},
+                    retry_func=process_data
+                )
+                if not error.is_recoverable:
+                    # Handle non-recoverable error
+                    logger.critical(f"Non-recoverable error: {error.message}")
+    """
 
     def __init__(self, max_retries: int = 3, retry_delay: float = 1.0) -> None:
         """
         Initialize error handler.
 
         Args:
-            max_retries: Maximum number of retry attempts
-            retry_delay: Delay between retries in seconds
+            max_retries: Maximum number of retry attempts. Default is 3.
+                Set to 0 to disable retries.
+            retry_delay: Base delay between retries in seconds. Default is 1.0.
+                The actual delay increases with each retry attempt (exponential
+                backoff: delay * retry_count).
         """
         self.max_retries = max_retries
         self.retry_delay = retry_delay
@@ -35,12 +91,57 @@ class ErrorHandler:
         """
         Classify and categorize an error.
 
+        This method analyzes an exception and determines its category, severity,
+        and recoverability. It creates a ProcessingError object with all
+        relevant information for error handling and retry logic.
+
+        Error Classification:
+            - ValueError -> VALIDATION (MEDIUM severity, recoverable)
+            - ConnectionError -> NETWORK (HIGH severity, recoverable)
+            - FileNotFoundError -> FILE_PROCESSING (HIGH severity, not recoverable)
+            - PermissionError -> SYSTEM (CRITICAL severity, not recoverable)
+            - Other exceptions -> SYSTEM (HIGH severity, recoverable)
+
         Args:
-            error: The exception that occurred
-            context: Additional context information
+            error: The exception that occurred. Can be any Exception subclass.
+            context: Optional dictionary with additional context information
+                about the error. This will be included in the ProcessingError
+                details field. Useful for debugging and logging.
 
         Returns:
-            ProcessingError with classification
+            ProcessingError object containing:
+                - error_id: Unique identifier for this error
+                - category: ErrorCategory enum value
+                - severity: ErrorSeverity enum value
+                - message: String representation of the error
+                - details: Context dictionary (if provided)
+                - is_recoverable: Boolean indicating if error can be retried
+                - timestamp: When the error occurred
+                - retry_count: Current retry count (starts at 0)
+                - max_retries: Maximum retry attempts (from handler config)
+
+        Example:
+            Basic classification::
+
+                try:
+                    result = int("not-a-number")
+                except ValueError as e:
+                    error = error_handler.classify_error(e)
+                    assert error.category == ErrorCategory.VALIDATION
+                    assert error.severity == ErrorSeverity.MEDIUM
+                    assert error.is_recoverable is True
+
+            With context::
+
+                try:
+                    await process_file("data.txt")
+                except FileNotFoundError as e:
+                    error = error_handler.classify_error(
+                        e,
+                        context={"filename": "data.txt", "user_id": 123}
+                    )
+                    assert error.category == ErrorCategory.FILE_PROCESSING
+                    assert error.details["filename"] == "data.txt"
         """
         error_id = f"ERR_{int(time.time())}_{id(error)}"
 
@@ -79,11 +180,29 @@ class ErrorHandler:
         """
         Determine if an error should be retried.
 
+        This method evaluates whether an error meets the criteria for retry:
+        - Error must be recoverable (is_recoverable == True)
+        - Retry count must be less than max_retries
+        - Error severity must not be CRITICAL
+
         Args:
-            error: The processing error
+            error: The ProcessingError object to evaluate. Must have been
+                created by classify_error() or manually constructed with
+                appropriate fields.
 
         Returns:
-            True if the error should be retried
+            True if the error should be retried, False otherwise.
+
+        Example:
+            Check before retrying::
+
+                error = error_handler.classify_error(some_exception)
+                if error_handler.should_retry(error):
+                    # Perform retry logic
+                    await retry_operation()
+                else:
+                    # Handle as final failure
+                    logger.error(f"Max retries reached: {error.message}")
         """
         return (
             error.is_recoverable
@@ -98,15 +217,75 @@ class ErrorHandler:
         retry_func: Callable[[], Any] | None = None,
     ) -> ProcessingError:
         """
-        Handle an error with retry logic.
+        Handle an error with automatic retry logic.
+
+        This method classifies the error, logs it appropriately based on severity,
+        and optionally retries the operation if a retry function is provided and
+        the error is recoverable.
+
+        The retry logic uses exponential backoff: delay = retry_delay * retry_count.
+        For example, with retry_delay=1.0:
+        - First retry: 1 second delay
+        - Second retry: 2 seconds delay
+        - Third retry: 3 seconds delay
 
         Args:
-            error: The exception that occurred
-            context: Additional context information
-            retry_func: Function to retry (if applicable)
+            error: The exception that occurred. Will be classified automatically.
+            context: Optional dictionary with additional context information
+                about the error. Included in error details for debugging.
+            retry_func: Optional async callable to retry if the error is
+                recoverable. If provided and should_retry() returns True, this
+                function will be called after the delay. The function should
+                be the same operation that failed initially.
 
         Returns:
-            ProcessingError after handling
+            ProcessingError object after handling. The retry_count field will
+            be updated if retries were attempted. If retry_func is provided
+            and succeeds, the error is still returned but the operation completed.
+
+        Raises:
+            Any exception raised by retry_func will be caught and logged, but
+            the retry loop will continue if max_retries has not been reached.
+
+        Note:
+            - Errors are automatically logged based on severity:
+              CRITICAL -> critical, HIGH -> error, MEDIUM -> warning, LOW -> info
+            - Critical errors are tracked in the critical_errors list
+            - Error counts by category are tracked in error_counts
+            - Retries only occur if retry_func is provided and should_retry()
+              returns True
+
+        Example:
+            Basic error handling::
+
+                async def api_call():
+                    # Operation that might fail
+                    return await http_client.get("https://api.example.com")
+
+                error_handler = ErrorHandler(max_retries=3, retry_delay=1.0)
+
+                try:
+                    result = await api_call()
+                except Exception as e:
+                    error = await error_handler.handle_error(
+                        e,
+                        context={"endpoint": "https://api.example.com"},
+                        retry_func=api_call
+                    )
+                    if error.retry_count >= error.max_retries:
+                        # All retries exhausted
+                        logger.error("Operation failed after retries")
+
+            Without retry function::
+
+                try:
+                    result = await process_data()
+                except Exception as e:
+                    # Just classify and log, no retry
+                    error = await error_handler.handle_error(
+                        e,
+                        context={"data_id": 123}
+                    )
         """
         processing_error = self.classify_error(error, context)
 
@@ -147,10 +326,67 @@ class ErrorHandler:
 
     def get_error_summary(self) -> dict[str, Any]:
         """
-        Get summary of all errors encountered.
+        Get summary of all errors encountered by this handler instance.
+
+        This method provides a comprehensive summary of all errors that have been
+        processed by this ErrorHandler instance, including counts by category
+        and details of critical errors.
 
         Returns:
-            Dictionary with error summary
+            Dictionary containing:
+                - total_errors: Total number of errors encountered
+                - error_counts_by_category: Dictionary mapping error category
+                  names to their counts
+                - critical_errors: Number of critical errors encountered
+                - critical_error_details: List of dictionaries with details
+                  about each critical error (error_id, message, timestamp)
+
+        Note:
+            - Statistics are reset when a new ErrorHandler instance is created
+            - Only errors processed through classify_error() or handle_error()
+              are tracked
+            - Useful for monitoring and reporting error patterns
+
+        Example:
+            Get error summary::
+
+                error_handler = ErrorHandler()
+
+                # Process some operations...
+                try:
+                    await operation1()
+                except Exception as e:
+                    await error_handler.handle_error(e)
+
+                try:
+                    await operation2()
+                except Exception as e:
+                    await error_handler.handle_error(e)
+
+                # Get summary
+                summary = error_handler.get_error_summary()
+                print(f"Total errors: {summary['total_errors']}")
+                print(f"Critical errors: {summary['critical_errors']}")
+                for category, count in summary['error_counts_by_category'].items():
+                    print(f"{category}: {count}")
+
+            Example output::
+
+                {
+                    "total_errors": 5,
+                    "error_counts_by_category": {
+                        "validation": 2,
+                        "network": 3
+                    },
+                    "critical_errors": 1,
+                    "critical_error_details": [
+                        {
+                            "error_id": "ERR_1234567890_12345",
+                            "message": "Permission denied",
+                            "timestamp": "2024-01-01T12:00:00Z"
+                        }
+                    ]
+                }
         """
         return {
             "total_errors": sum(self.error_counts.values()),

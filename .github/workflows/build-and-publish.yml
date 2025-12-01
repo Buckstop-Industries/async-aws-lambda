@@ -1,0 +1,247 @@
+name: Build and Publish
+
+on:
+  push:
+    tags:
+      - "v*.*.*"  # Trigger on version tags like v0.2.0
+  workflow_dispatch:  # Allow manual triggering
+    inputs:
+      version:
+        description: "Version to publish (e.g., 0.2.0)"
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install build dependencies
+        run: |
+          uv pip install build wheel twine
+
+      - name: Build package
+        run: |
+          python -m build
+
+      - name: Check package
+        run: |
+          twine check dist/*
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  docs:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install documentation dependencies
+        run: |
+          uv pip install sphinx sphinx-rtd-theme myst-parser sphinxcontrib-napoleon
+
+      - name: Setup documentation structure
+        run: |
+          mkdir -p docs
+          
+          # Create conf.py
+          cat > docs/conf.py << 'EOF'
+          import os
+          import sys
+          sys.path.insert(0, os.path.abspath('..'))
+          
+          project = 'async-aws-lambda'
+          copyright = '2025, Buckstop'
+          author = 'Buckstop'
+          release = '${{ github.ref_name }}'
+          
+          extensions = [
+              'sphinx.ext.autodoc',
+              'sphinx.ext.viewcode',
+              'sphinx.ext.intersphinx',
+              'sphinxcontrib.napoleon',
+              'myst_parser',
+          ]
+          
+          templates_path = ['_templates']
+          exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+          
+          html_theme = 'sphinx_rtd_theme'
+          html_static_path = ['_static']
+          
+          autodoc_default_options = {
+              'members': True,
+              'undoc-members': True,
+              'show-inheritance': True,
+              'special-members': '__init__',
+          }
+          
+          autodoc_mock_imports = [
+              'sqlalchemy',
+              'pydantic',
+              'pydantic_settings',
+              'boto3',
+              'botocore',
+          ]
+          
+          intersphinx_mapping = {
+              'python': ('https://docs.python.org/3', None),
+          }
+          EOF
+          
+          # Create index.rst
+          cat > docs/index.rst << 'EOF'
+          async-aws-lambda Documentation
+          =================================
+          
+          A lightweight, zero-dependency library for building async AWS Lambda functions.
+          
+          .. include:: ../README.md
+             :parser: myst_parser
+          
+          API Reference
+          =============
+          
+          .. toctree::
+             :maxdepth: 2
+             :caption: API Reference:
+          
+             modules
+          
+          Indices and tables
+          ==================
+          
+          * :ref:`genindex`
+          * :ref:`modindex`
+          * :ref:`search`
+          EOF
+          
+          # Create Makefile
+          cat > docs/Makefile << 'EOF'
+          SPHINXOPTS    =
+          SPHINXBUILD  = sphinx-build
+          SOURCEDIR    = .
+          BUILDDIR     = _build
+          
+          help:
+          	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+          
+          .PHONY: help Makefile
+          
+          %: Makefile
+          	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+          EOF
+
+      - name: Generate API documentation
+        run: |
+          sphinx-apidoc -o docs/ ../async_aws_lambda --separate --module-first --force
+
+      - name: Build HTML documentation
+        run: |
+          cd docs
+          make html
+
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: docs/_build/html/
+          retention-days: 30
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [build, docs]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: pypi
+      url: https://pypi.org/p/async-aws-lambda
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install twine
+        run: |
+          uv pip install twine
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          twine upload dist/*
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release v${{ steps.get_version.outputs.version }}
+          body: |
+            See [CHANGELOG.md](CHANGELOG.md) for details.
+            
+            ## Installation
+            
+            ```bash
+            pip install async-aws-lambda==${{ steps.get_version.outputs.version }}
+            ```
+            
+            Or install with extras:
+            
+            ```bash
+            pip install async-aws-lambda[all]==${{ steps.get_version.outputs.version }}
+            ```
+          draft: false
+          prerelease: ${{ contains(github.ref, '-') }}
+          files: |
+            dist/*
+

@@ -32,7 +32,7 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          uv pip install build wheel twine
+          uv pip install --system build wheel twine
 
       - name: Build package
         run: |
@@ -68,7 +68,7 @@ jobs:
 
       - name: Install documentation dependencies
         run: |
-          uv pip install sphinx sphinx-rtd-theme myst-parser sphinxcontrib-napoleon
+          uv pip install --system sphinx sphinx-rtd-theme myst-parser sphinxcontrib-napoleon
 
       - name: Setup documentation structure
         run: |
@@ -201,7 +201,7 @@ jobs:
 
       - name: Install twine
         run: |
-          uv pip install twine
+          uv pip install --system twine
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4

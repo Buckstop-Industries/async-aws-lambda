@@ -5,9 +5,11 @@ This directory contains GitHub Actions workflows for CI/CD.
 ## Workflows
 
 ### `test.yml`
+
 Runs on every push and pull request to `main` and `develop` branches.
 
 **Jobs:**
+
 - **test**: Runs linting, type checking, and tests
   - Linting with ruff
   - Type checking with mypy
@@ -15,15 +17,19 @@ Runs on every push and pull request to `main` and `develop` branches.
   - Coverage reporting to Codecov
 
 ### `build-and-publish.yml`
+
 Runs when a version tag is pushed (e.g., `v0.2.0`) or manually triggered.
 
 **Jobs:**
+
 - **build**: Builds the Python package
+
   - Creates source distribution and wheel
   - Validates package with twine check
   - Uploads artifacts for later use
 
 - **docs**: Generates Sphinx documentation
+
   - Sets up Sphinx configuration
   - Generates API documentation from docstrings
   - Builds HTML documentation
@@ -41,11 +47,13 @@ Runs when a version tag is pushed (e.g., `v0.2.0`) or manually triggered.
 To enable PyPI publishing, you need to:
 
 1. Create a PyPI API token:
+
    - Go to https://pypi.org/manage/account/token/
    - Create a new API token with "Upload packages" scope
    - Copy the token (starts with `pypi-`)
 
 2. Add the token as a GitHub secret:
+
    - Go to your repository Settings → Secrets and variables → Actions
    - Add a new secret named `PYPI_API_TOKEN`
    - Paste your PyPI API token
@@ -100,17 +108,19 @@ Documentation artifacts are uploaded but not automatically published. To publish
 ## Troubleshooting
 
 ### Build fails
+
 - Check that `pyproject.toml` is valid
 - Ensure all required fields are present
 - Verify Python version compatibility
 
 ### PyPI upload fails
+
 - Verify `PYPI_API_TOKEN` secret is set correctly
 - Check that the package name isn't already taken
 - Ensure the version number is unique (not already published)
 
 ### Documentation generation fails
+
 - Check that docstrings are properly formatted
 - Verify Sphinx dependencies are installed
 - Check for syntax errors in docstrings
-

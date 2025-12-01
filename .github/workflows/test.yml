@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install -e ".[all,dev]"
+          uv pip install --system -e ".[all,dev]"
 
       - name: Run linting with ruff
         run: |
@@ -44,7 +44,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          uv pip install pytest-cov
+          uv pip install --system pytest-cov
           uv run pytest tests/ --cov=async_aws_lambda --cov-report=xml --cov-report=term
 
       - name: Upload coverage to Codecov

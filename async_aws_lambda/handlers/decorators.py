@@ -217,7 +217,7 @@ def with_database[**P](
             sig = inspect.signature(handler_func)
             if "db_session" not in sig.parameters:
                 # Handler doesn't expect db_session, call without it
-                no_db_result: Any = await handler_func(event, context, *args, **kwargs)  # type: ignore[call-arg, arg-type]
+                no_db_result: Any = await handler_func(event, context, *args, **kwargs)
                 return cast(dict[str, Any], no_db_result)
 
             if factory:
@@ -225,7 +225,7 @@ def with_database[**P](
                 try:
                     # Call handler with db_session injected as keyword argument
                     factory_result: Any = await handler_func(
-                        event, context, *args, db_session=db_session, **kwargs  # type: ignore[call-arg, arg-type]
+                        event, context, *args, db_session=db_session, **kwargs
                     )
                     return cast(dict[str, Any], factory_result)
                 finally:
@@ -238,7 +238,7 @@ def with_database[**P](
                     async with get_db_session() as session:
                         # Call handler with db_session injected as keyword argument
                         session_result: Any = await handler_func(
-                            event, context, *args, db_session=session, **kwargs  # type: ignore[call-arg, arg-type]
+                            event, context, *args, db_session=session, **kwargs
                         )
                         return cast(dict[str, Any], session_result)
                 finally:
@@ -376,7 +376,7 @@ def with_config[**P](
             if settings_class:
                 settings = get_settings(settings_class)  # type: ignore[arg-type]
             else:
-                settings = get_settings()  # type: ignore[arg-type]
+                settings = get_settings()
 
             # Call handler with settings injected as keyword argument
             # Use signature inspection to inject in the right place
@@ -384,14 +384,14 @@ def with_config[**P](
             if "settings" in sig.parameters:
                 # Inject as keyword argument
                 with_settings_result: Any = await handler_func(
-                    event, context, *args, settings=settings, **kwargs  # type: ignore[misc]
+                    event, context, *args, settings=settings, **kwargs
                 )
                 return cast(dict[str, Any], with_settings_result)
             else:
                 # Handler doesn't expect settings, call without it
                 no_settings_result: Any = await handler_func(
                     event, context, *args, **kwargs
-                )  # type: ignore[misc]
+                )
                 return cast(dict[str, Any], no_settings_result)
 
         return wrapper  # type: ignore[return-value]

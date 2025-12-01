@@ -28,7 +28,7 @@ metadata = MetaData(
 )
 
 
-class Base(DeclarativeBase):  # type: ignore[misc]
+class Base(DeclarativeBase):
     """
     Base class for SQLAlchemy models in Lambda functions.
 

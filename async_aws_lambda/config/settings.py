@@ -19,7 +19,7 @@ except ImportError as e:
 T = TypeVar("T", bound=BaseSettings)
 
 
-class Settings(BaseSettings):  # type: ignore[misc]
+class Settings(BaseSettings):
     """
     Base settings class for Lambda functions.
 
@@ -144,5 +144,6 @@ def get_settings(settings_class: type[T] | None = None) -> T:  # noqa: UP047
     """
     if settings_class is None:
         settings_class = Settings  # type: ignore[assignment]
-    instance: T = settings_class()  # type: ignore[arg-type, no-any-return]
-    return instance
+    # settings_class is guaranteed to be non-None after the check above
+    assert settings_class is not None
+    return settings_class()  # type: ignore[arg-type, no-any-return]

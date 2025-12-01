@@ -19,7 +19,7 @@ except ImportError as e:
 T = TypeVar("T", bound=BaseSettings)
 
 
-class Settings(BaseSettings):
+class Settings(BaseSettings):  # type: ignore[misc]
     """
     Base settings class for Lambda functions.
 
@@ -87,7 +87,7 @@ class Settings(BaseSettings):
 
 
 @lru_cache
-def get_settings(settings_class: type[T] = Settings) -> T:  # noqa: UP047
+def get_settings(settings_class: type[T] | None = None) -> T:  # noqa: UP047
     """
     Get cached settings instance.
 
@@ -142,4 +142,7 @@ def get_settings(settings_class: type[T] = Settings) -> T:  # noqa: UP047
             s2 = get_settings(Settings2)
             assert s1 is not s2  # Different instances
     """
-    return settings_class()
+    if settings_class is None:
+        settings_class = Settings  # type: ignore[assignment]
+    instance: T = settings_class()  # type: ignore[arg-type, no-any-return]
+    return instance

@@ -12,7 +12,7 @@ import functools
 import inspect
 import logging
 from collections.abc import Callable
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar, cast
 
 from .lifecycle import lambda_lifecycle
 from .protocols import DatabaseFactory
@@ -98,7 +98,8 @@ def lambda_handler[**P](
                 # Call the handler - other decorators will inject dependencies
                 # via kwargs, so we just pass event and context as positional args
                 # and let other decorators add their dependencies to kwargs
-                return await func(event, context)
+                result: Any = await func(event, context)  # type: ignore[call-arg, arg-type]
+                return cast(dict[str, Any], result)
 
         return asyncio.run(async_wrapper())
 
@@ -216,15 +217,17 @@ def with_database[**P](
             sig = inspect.signature(handler_func)
             if "db_session" not in sig.parameters:
                 # Handler doesn't expect db_session, call without it
-                return await handler_func(event, context, *args, **kwargs)
+                no_db_result: Any = await handler_func(event, context, *args, **kwargs)  # type: ignore[call-arg, arg-type]
+                return cast(dict[str, Any], no_db_result)
 
             if factory:
                 db_session = await factory()
                 try:
                     # Call handler with db_session injected as keyword argument
-                    return await handler_func(
-                        event, context, *args, db_session=db_session, **kwargs
+                    factory_result: Any = await handler_func(
+                        event, context, *args, db_session=db_session, **kwargs  # type: ignore[call-arg, arg-type]
                     )
+                    return cast(dict[str, Any], factory_result)
                 finally:
                     # Cleanup custom session if it has a close method
                     if hasattr(db_session, "close"):
@@ -234,9 +237,10 @@ def with_database[**P](
                 try:
                     async with get_db_session() as session:
                         # Call handler with db_session injected as keyword argument
-                        return await handler_func(
-                            event, context, *args, db_session=session, **kwargs
+                        session_result: Any = await handler_func(
+                            event, context, *args, db_session=session, **kwargs  # type: ignore[call-arg, arg-type]
                         )
+                        return cast(dict[str, Any], session_result)
                 finally:
                     # Ensure database cleanup happens while event loop is still running
                     # This is critical for backends like SQLite that use background
@@ -248,7 +252,7 @@ def with_database[**P](
                     except Exception as cleanup_error:
                         logger.debug(f"Error during database cleanup: {cleanup_error}")
 
-        return wrapper
+        return wrapper  # type: ignore[return-value]
 
     # Support both @with_database and @with_database(...) syntax
     if func is None:
@@ -370,23 +374,25 @@ def with_config[**P](
             """Wrapper that injects settings."""
             # Get settings (use custom class or default)
             if settings_class:
-                settings = get_settings(settings_class)
+                settings = get_settings(settings_class)  # type: ignore[arg-type]
             else:
-                settings = get_settings(Settings)
+                settings = get_settings()  # type: ignore[arg-type]
 
             # Call handler with settings injected as keyword argument
             # Use signature inspection to inject in the right place
             sig = inspect.signature(handler_func)
             if "settings" in sig.parameters:
                 # Inject as keyword argument
-                return await handler_func(
-                    event, context, *args, settings=settings, **kwargs
+                with_settings_result: Any = await handler_func(
+                    event, context, *args, settings=settings, **kwargs  # type: ignore[misc]
                 )
+                return cast(dict[str, Any], with_settings_result)
             else:
                 # Handler doesn't expect settings, call without it
-                return await handler_func(event, context, *args, **kwargs)
+                no_settings_result: Any = await handler_func(event, context, *args, **kwargs)  # type: ignore[misc]
+                return cast(dict[str, Any], no_settings_result)
 
-        return wrapper
+        return wrapper  # type: ignore[return-value]
 
     # Support both @with_config and @with_config(...) syntax
     if func is None:

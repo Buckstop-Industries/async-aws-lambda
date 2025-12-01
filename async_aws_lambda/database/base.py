@@ -5,10 +5,10 @@ This module provides a base class for SQLAlchemy models optimized for Lambda use
 Requires sqlalchemy to be installed.
 """
 
-
 try:
     from sqlalchemy import MetaData
     from sqlalchemy.orm import DeclarativeBase
+
     HAS_SQLALCHEMY = True
 except ImportError as e:
     raise ImportError(
@@ -28,7 +28,7 @@ metadata = MetaData(
 )
 
 
-class Base(DeclarativeBase):
+class Base(DeclarativeBase):  # type: ignore[misc]
     """
     Base class for SQLAlchemy models in Lambda functions.
 
@@ -44,4 +44,3 @@ class Base(DeclarativeBase):
     """
 
     metadata = metadata
-

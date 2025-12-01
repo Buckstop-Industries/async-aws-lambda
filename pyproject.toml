@@ -90,6 +90,7 @@ module = [
     "pydantic.*",
     "pydantic_settings.*",
     "boto3.*",
+    "botocore.*",
 ]
 ignore_missing_imports = true
 

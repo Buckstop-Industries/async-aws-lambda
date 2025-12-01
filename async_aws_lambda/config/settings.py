@@ -146,4 +146,4 @@ def get_settings(settings_class: type[T] | None = None) -> T:  # noqa: UP047
         settings_class = Settings  # type: ignore[assignment]
     # settings_class is guaranteed to be non-None after the check above
     assert settings_class is not None
-    return settings_class()  # type: ignore[arg-type, no-any-return]
+    return settings_class()

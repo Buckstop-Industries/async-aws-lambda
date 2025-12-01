@@ -349,7 +349,7 @@ def with_config[**P](
     """
     # Try to import config module (optional dependency)
     try:
-        from ..config.settings import Settings, get_settings
+        from ..config.settings import get_settings
     except ImportError:
         raise ImportError(
             "Configuration support requires 'async-aws-lambda[config]' extra. "
@@ -389,7 +389,9 @@ def with_config[**P](
                 return cast(dict[str, Any], with_settings_result)
             else:
                 # Handler doesn't expect settings, call without it
-                no_settings_result: Any = await handler_func(event, context, *args, **kwargs)  # type: ignore[misc]
+                no_settings_result: Any = await handler_func(
+                    event, context, *args, **kwargs
+                )  # type: ignore[misc]
                 return cast(dict[str, Any], no_settings_result)
 
         return wrapper  # type: ignore[return-value]

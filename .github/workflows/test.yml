@@ -32,20 +32,19 @@ jobs:
 
       - name: Run linting with ruff
         run: |
-          uv run ruff check .
+          ruff check .
 
       - name: Run type checking with mypy
         run: |
-          uv run mypy async_aws_lambda
+          mypy async_aws_lambda
 
       - name: Run tests
         run: |
-          uv run pytest tests/ -v --tb=short
+          pytest tests/ -v --tb=short
 
       - name: Run tests with coverage
         run: |
-          uv pip install --system pytest-cov
-          uv run pytest tests/ --cov=async_aws_lambda --cov-report=xml --cov-report=term
+          pytest tests/ --cov=async_aws_lambda --cov-report=xml --cov-report=term
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

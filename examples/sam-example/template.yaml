@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Example SAM application using async-aws-lambda with database support
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+    MemorySize: 128
+
+Resources:
+  ExampleFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      CodeUri: ../../
+      Environment:
+        Variables:
+          # Set DATABASE_URL for your database
+          # For PostgreSQL: postgresql+asyncpg://user:password@host:port/database
+          # For SQLite (local testing): sqlite+aiosqlite:///path/to/database.db
+          DATABASE_URL: !Ref DatabaseUrl
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: ../../
+
+Parameters:
+  DatabaseUrl:
+    Type: String
+    Description: Database connection URL
+    Default: "sqlite+aiosqlite:///:memory:"
+    # For PostgreSQL (local testing with docker-compose):
+    # postgresql+asyncpg://testuser:testpass@localhost:5432/testdb
+    # For production PostgreSQL:
+    # postgresql+asyncpg://user:password@host:port/database
+    # For file-based SQLite: sqlite+aiosqlite:///tmp/example.db (3 slashes for absolute path)
+    # For in-memory SQLite (testing): sqlite+aiosqlite:///:memory:
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  ExampleApi:
+    Description: "API Gateway endpoint URL for Prod stage for Example function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello"
+  ExampleFunction:
+    Description: "Example Lambda Function ARN"
+    Value: !GetAtt ExampleFunction.Arn
+  ExampleFunctionIamRole:
+    Description: "Implicit IAM Role created for Example function"
+    Value: !GetAtt ExampleFunctionRole.Arn
+

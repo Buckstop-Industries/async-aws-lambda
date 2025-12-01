@@ -1,0 +1,9 @@
+# Database dependencies
+sqlalchemy[asyncio]>=2.0.0
+aiosqlite>=0.19.0
+asyncpg>=0.29.0  # Required for PostgreSQL async support
+
+# Note: The async-aws-lambda package is installed from the parent directory
+# in the Dockerfile. For production, install from PyPI:
+# async-aws-lambda[db]>=0.1.0
+

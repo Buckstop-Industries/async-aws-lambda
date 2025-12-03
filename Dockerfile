@@ -1,7 +1,7 @@
 FROM public.ecr.aws/lambda/python:3.13
 
 # Copy the async-aws-lambda package
-COPY async_aws_lambda /var/task/async_aws_lambda
+COPY src/async_aws_lambda /var/task/async_aws_lambda
 COPY pyproject.toml /var/task/pyproject.toml
 
 # Copy application code

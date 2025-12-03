@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build >= 0.9.11, <0.10.0"]
+build-backend = "uv_build"
 
 [project]
 name = "async-aws-lambda"
@@ -61,11 +61,8 @@ Documentation = "https://github.com/bucktop-industries/async-aws-lambda#readme"
 Repository = "https://github.com/bucktop-industries/async-aws-lambda"
 Issues = "https://github.com/bucktop-industries/async-aws-lambda/issues"
 
-[tool.setuptools]
-packages = ["async_aws_lambda"]
-
-[tool.setuptools.package-data]
-async_aws_lambda = ["py.typed"]
+[tool.uv]
+package = true
 
 [tool.mypy]
 python_version = "3.13"
@@ -83,6 +80,7 @@ warn_no_return = true
 warn_unreachable = true
 show_error_codes = true
 disallow_any_generics = true
+explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = [
@@ -114,6 +112,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+pythonpath = ["src"]
 addopts = [
     "-v",
     "--strict-markers",

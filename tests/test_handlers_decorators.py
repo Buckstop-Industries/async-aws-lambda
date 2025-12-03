@@ -134,15 +134,19 @@ class TestWithDatabase:
                 "async_aws_lambda.database.get_db_session",
                 return_value=mock_get_session_cm,
             ):
-                mock_init.return_value = None
+                with patch("async_aws_lambda.database.close_db") as mock_close_db:
+                    mock_init.return_value = None
+                    mock_close_db.return_value = None
 
-                @lambda_handler
-                @with_database
-                async def handler(event, context):
-                    return {"statusCode": 200}
+                    @lambda_handler
+                    @with_database
+                    async def handler(event, context):
+                        return {"statusCode": 200}
 
-                result = handler(sample_event, mock_lambda_context)
-                assert result["statusCode"] == 200
+                    result = handler(sample_event, mock_lambda_context)
+                    assert result["statusCode"] == 200
+                    # Verify that close_db() was called even without db_session param
+                    mock_close_db.assert_called_once()
 
     @pytest.mark.unit
     @pytest.mark.requires_db

@@ -217,8 +217,22 @@ def with_database[**P](
             sig = inspect.signature(handler_func)
             if "db_session" not in sig.parameters:
                 # Handler doesn't expect db_session, call without it
-                no_db_result: Any = await handler_func(event, context, *args, **kwargs)
-                return cast(dict[str, Any], no_db_result)
+                # Still need to cleanup database resources
+                try:
+                    no_db_result: Any = await handler_func(
+                        event, context, *args, **kwargs
+                    )
+                    return cast(dict[str, Any], no_db_result)
+                finally:
+                    # Ensure database cleanup happens even when db_session is not used
+                    # This is critical for backends like SQLite that use background
+                    # threads
+                    from ..database import close_db
+
+                    try:
+                        await close_db()
+                    except Exception as cleanup_error:
+                        logger.debug(f"Error during database cleanup: {cleanup_error}")
 
             if factory:
                 db_session = await factory()

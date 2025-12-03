@@ -25,7 +25,7 @@ This example demonstrates how to use `async-aws-lambda` with the AWS SAM CLI for
 3. **Set up database**:
 
    **Option A: SQLite (Simplest for quick testing)**
-   
+
    ```bash
    # Uses in-memory database by default (no setup needed)
    # Or use a file-based database:
@@ -34,23 +34,23 @@ This example demonstrates how to use `async-aws-lambda` with the AWS SAM CLI for
    ```
 
    **Option B: PostgreSQL (For production-like testing)**
-   
+
    Start PostgreSQL using docker-compose:
-   
+
    ```bash
    cd examples/sam-example
    docker-compose up -d
    ```
-   
+
    Wait for PostgreSQL to be ready (check with `docker-compose ps`), then use:
-   
+
    ```bash
    # Note: docker-compose uses port 5433 to avoid conflicts
    export DATABASE_URL="postgresql+asyncpg://testuser:testpass@localhost:5433/testdb"
    ```
-   
+
    Or if you have a local PostgreSQL instance:
-   
+
    ```bash
    export DATABASE_URL="postgresql+asyncpg://user:password@localhost:5432/mydb"
    ```
@@ -69,12 +69,14 @@ sam build
 Then invoke the function:
 
 **With SQLite (default):**
+
 ```bash
 sam local invoke ExampleFunction \
   --event events/event.json
 ```
 
 **With PostgreSQL:**
+
 ```bash
 # Make sure PostgreSQL is running (docker-compose up -d)
 sam local invoke ExampleFunction \
@@ -96,11 +98,13 @@ sam build
 Start the API server:
 
 **With SQLite (default):**
+
 ```bash
 sam local start-api
 ```
 
 **With PostgreSQL:**
+
 ```bash
 sam local start-api \
   --parameter-overrides "DatabaseUrl=postgresql+asyncpg://testuser:testpass@host.docker.internal:5433/testdb"
@@ -157,6 +161,7 @@ sam local invoke ExampleFunction --event events/event.json
 The `DATABASE_URL` environment variable supports different database backends:
 
 - **SQLite**: `sqlite+aiosqlite:///path/to/database.db`
+
   - Use absolute paths: `sqlite+aiosqlite:///tmp/example.db`
   - Use relative paths: `sqlite+aiosqlite:///./example.db`
   - In-memory: `sqlite+aiosqlite:///:memory:`
@@ -171,6 +176,7 @@ The `DATABASE_URL` environment variable supports different database backends:
 You can override the database URL by passing it as a parameter:
 
 **SQLite:**
+
 ```bash
 sam local invoke ExampleFunction \
   --event events/event.json \
@@ -178,6 +184,7 @@ sam local invoke ExampleFunction \
 ```
 
 **PostgreSQL:**
+
 ```bash
 # Make sure PostgreSQL is running (docker-compose up -d)
 sam local invoke ExampleFunction \
@@ -188,6 +195,7 @@ sam local invoke ExampleFunction \
 ### Docker Image
 
 The example uses a Docker image that:
+
 - Installs the `async-aws-lambda` package from the parent directory
 - Includes all required dependencies
 - Sets up the Lambda handler correctly
@@ -236,7 +244,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 class User(Base):
     __tablename__ = "users"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
     email: Mapped[str]
@@ -260,6 +268,7 @@ async def handler(event, context, db_session: AsyncSession):
 ### Database Connection Issues
 
 1. **SQLite**: Ensure the directory exists and is writable
+
    ```bash
    mkdir -p /tmp
    chmod 777 /tmp
@@ -289,4 +298,3 @@ async def handler(event, context, db_session: AsyncSession):
 - [AWS SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
 - [async-aws-lambda Documentation](../../README.md)
 - [SQLAlchemy Async Documentation](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html)
-
